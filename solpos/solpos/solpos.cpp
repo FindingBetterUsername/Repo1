@@ -85,12 +85,14 @@
 *                               (changed sign). Error is small (max 0.015 deg
 *                               in calculation of declination angle)
 *----------------------------------------------------------------------------*/
-
-#include <math.h>
+#include "solpos.h"
+#include "stdafx.h"
+#include <cmath>
 #include <string.h>
 #include <stdio.h>
-#include "stdafx.h"
-#include "solpos.h"
+
+
+
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 *
@@ -117,8 +119,8 @@ static int  month_days[2][13] = { { 0,   0,  31,  59,  90, 120, 151,
 182, 213, 244, 274, 305, 335 } };
 /* cumulative number of days prior to beginning of month */
 
-static float degrad = 57.295779513; /* converts from radians to degrees */
-static float raddeg = 0.0174532925; /* converts from degrees to radians */
+static double degrad = 57.295779513; /* converts from radians to degrees */
+static double raddeg = 0.0174532925; /* converts from degrees to radians */
 
 
 
@@ -177,6 +179,9 @@ static void localtrig( struct posdata *pdat, struct trigdata *tdat );
 *    Returns (via the struct posdata parameter):
 *        everything defined in the struct posdata in solpos.h.
 *----------------------------------------------------------------------------*/
+
+
+
 long S_solpos(posdata * pdat)
 {
 	long int retval;
@@ -276,10 +281,10 @@ void S_init(struct posdata *pdat)
 	pdat->solcon = 1367.0;   /* Solar constant, 1367 W/sq m */
 	pdat->temp = 15.0;   /* Ambient dry-bulb temperature, degrees C */
 	pdat->tilt = 0.0;   /* Degrees tilt from horizontal of panel */
-	pdat->timezone = -99.0;   /* Time zone, east (west negative). */
-	pdat->sbwid = 7.6;   /* Eppley shadow band width */
-	pdat->sbrad = 31.7;   /* Eppley shadow band radius */
-	pdat->sbsky = 0.04;   /* Drummond factor for partly cloudy skies */
+	pdat->timezone = -99.0f;   /* Time zone, east (west negative). */
+	pdat->sbwid = 7.6f;   /* Eppley shadow band width */
+	pdat->sbrad = 31.7f;   /* Eppley shadow band radius */
+	pdat->sbsky = 0.04f;   /* Drummond factor for partly cloudy skies */
 	pdat->function = S_ALL;   /* compute all parameters */
 
 }
@@ -317,7 +322,7 @@ static long int validate(struct posdata *pdat)
 			retval |= ((1L << S_HOUR_ERROR) | (1L << S_MINUTE_ERROR));
 		if ((pdat->hour == 24) && (pdat->second > 0)) /* no more than 24 hrs */
 			retval |= ((1L << S_HOUR_ERROR) | (1L << S_SECOND_ERROR));
-		if (fabs(pdat->timezone) > 12.0)
+		if (fabsf(pdat->timezone) > 12.0)
 			retval |= (1L << S_TZONE_ERROR);
 		if ((pdat->interval < 0) || (pdat->interval > 28800))
 			retval |= (1L << S_INTRVL_ERROR);
@@ -437,19 +442,19 @@ static void geometry(struct posdata *pdat)
 					   /* Day angle */
 					   /*  Iqbal, M.  1983.  An Introduction to Solar Radiation.
 					   Academic Press, NY., page 3 */
-	pdat->dayang = 360.0 * (pdat->daynum - 1) / 365.0;
+	pdat->dayang = 360.0f * (pdat->daynum - 1) / 365.0f;
 
 	/* Earth radius vector * solar constant = solar energy */
 	/*  Spencer, J. W.  1971.  Fourier series representation of the
 	position of the sun.  Search 2 (5), page 172 */
 	sd = sin(raddeg * pdat->dayang);
 	cd = cos(raddeg * pdat->dayang);
-	d2 = 2.0 * pdat->dayang;
+	d2 = 2.0f * pdat->dayang;
 	c2 = cos(raddeg * d2);
 	s2 = sin(raddeg * d2);
 
-	pdat->erv = 1.000110 + 0.034221 * cd + 0.001280 * sd;
-	pdat->erv += 0.000719 * c2 + 0.000077 * s2;
+	pdat->erv = 1.000110f + 0.034221f * cd + 0.001280f * sd;
+	pdat->erv += 0.000719f * c2 + 0.000077f * s2;
 
 	/* Universal Coordinated (Greenwich standard) time */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -472,36 +477,36 @@ static void geometry(struct posdata *pdat)
 	delta = pdat->year - 1949;
 	leap = (int)(delta / 4.0);
 	pdat->julday =
-		32916.5 + delta * 365.0 + leap + pdat->daynum + pdat->utime / 24.0;
+		32916.5f + delta * 365.0f + leap + pdat->daynum + pdat->utime / 24.0f;
 
 	/* Time used in the calculation of ecliptic coordinates */
 	/* Noon 1 JAN 2000 = 2,400,000 + 51,545 days Julian Date */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
 	approximate solar position (1950-2050).  Solar Energy 40 (3),
 	pp. 227-235. */
-	pdat->ectime = pdat->julday - 51545.0;
+	pdat->ectime = pdat->julday - 51545.0f;
 
 	/* Mean longitude */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
 	approximate solar position (1950-2050).  Solar Energy 40 (3),
 	pp. 227-235. */
-	pdat->mnlong = 280.460 + 0.9856474 * pdat->ectime;
+	pdat->mnlong = 280.460f + 0.9856474f * pdat->ectime;
 
 	/* (dump the multiples of 360, so the answer is between 0 and 360) */
-	pdat->mnlong -= 360.0 * (int)(pdat->mnlong / 360.0);
+	pdat->mnlong -= 360.0f * (int)(pdat->mnlong / 360.0f);
 	if (pdat->mnlong < 0.0)
-		pdat->mnlong += 360.0;
+		pdat->mnlong += 360.0f;
 
 	/* Mean anomaly */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
 	approximate solar position (1950-2050).  Solar Energy 40 (3),
 	pp. 227-235. */
-	pdat->mnanom = 357.528 + 0.9856003 * pdat->ectime;
+	pdat->mnanom = 357.528f + 0.9856003f * pdat->ectime;
 
 	/* (dump the multiples of 360, so the answer is between 0 and 360) */
-	pdat->mnanom -= 360.0 * (int)(pdat->mnanom / 360.0);
+	pdat->mnanom -= 360.0f * (int)(pdat->mnanom / 360.0f);
 	if (pdat->mnanom < 0.0)
-		pdat->mnanom += 360.0;
+		pdat->mnanom += 360.0f;
 
 	/* Ecliptic longitude */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -511,9 +516,9 @@ static void geometry(struct posdata *pdat)
 		0.020 * sin(2.0 * pdat->mnanom * raddeg);
 
 	/* (dump the multiples of 360, so the answer is between 0 and 360) */
-	pdat->eclong -= 360.0 * (int)(pdat->eclong / 360.0);
+	pdat->eclong -= 360.0f * (int)(pdat->eclong / 360.0f);
 	if (pdat->eclong < 0.0)
-		pdat->eclong += 360.0;
+		pdat->eclong += 360.0f;
 
 	/* Obliquity of the ecliptic */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -522,7 +527,7 @@ static void geometry(struct posdata *pdat)
 
 	/* 02 Feb 2001 SMW corrected sign in the following line */
 	/*  pdat->ecobli = 23.439 + 4.0e-07 * pdat->ectime;     */
-	pdat->ecobli = 23.439 - 4.0e-07 * pdat->ectime;
+	pdat->ecobli = 23.439f - 4.0e-07 * pdat->ectime;
 
 	/* Declination */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -990,8 +995,3 @@ void S_decode(long code, posdata * pdat)
 
 }
 
-int main()
-{
-	//testcommit
-	return 0;
-}
