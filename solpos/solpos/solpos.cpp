@@ -85,11 +85,12 @@
 *                               (changed sign). Error is small (max 0.015 deg
 *                               in calculation of declination angle)
 *----------------------------------------------------------------------------*/
-#include "solpos.h"
+
 #include "stdafx.h"
 #include <cmath>
 #include <string.h>
 #include <stdio.h>
+#include "solpos.h"
 
 
 
@@ -127,123 +128,24 @@ static double raddeg = 0.0174532925; /* converts from degrees to radians */
 /*============================================================================
 *    Local function prototypes
 ============================================================================*/
-static long int validate ( struct posdata *pdat);
-static void dom2doy( struct posdata *pdat );
-static void doy2dom( struct posdata *pdat );
-static void geometry ( struct posdata *pdat );
-static void zen_no_ref ( struct posdata *pdat, struct trigdata *tdat );
-static void ssha( struct posdata *pdat, struct trigdata *tdat );
-static void sbcf( struct posdata *pdat, struct trigdata *tdat );
-static void tst( struct posdata *pdat );
-static void srss( struct posdata *pdat );
-static void sazm( struct posdata *pdat, struct trigdata *tdat );
-static void refrac( struct posdata *pdat );
-static void amass( struct posdata *pdat );
-static void prime( struct posdata *pdat );
-static void etr( struct posdata *pdat );
-static void tilt( struct posdata *pdat );
-static void localtrig( struct posdata *pdat, struct trigdata *tdat );
+//static long int validate ( struct posdata *pdat);
+//static void dom2doy( struct posdata *pdat );
+//static void doy2dom( struct posdata *pdat );
+//static void geometry ( struct posdata *pdat );
+//static void zen_no_ref ( struct posdata *pdat, struct trigdata *tdat );
+//static void ssha( struct posdata *pdat, struct trigdata *tdat );
+//static void sbcf( struct posdata *pdat, struct trigdata *tdat );
+//static void tst( struct posdata *pdat );
+//static void srss( struct posdata *pdat );
+//static void sazm( struct posdata *pdat, struct trigdata *tdat );
+//static void refrac( struct posdata *pdat );
+//static void amass( struct posdata *pdat );
+//static void prime( struct posdata *pdat );
+//static void etr( struct posdata *pdat );
+//static void tilt( struct posdata *pdat );
+//static void localtrig( struct posdata *pdat, struct trigdata *tdat );
 
 
-/*============================================================================
-*    Long integer function S_solpos, adapted from the VAX solar libraries
-*
-*    This function calculates the apparent solar position and the
-*    intensity of the sun (theoretical maximum solar energy) from
-*    time and place on Earth.
-*
-*    Requires (from the struct posdata parameter):
-*        Date and time:
-*            year
-*            daynum   (requirement depends on the S_DOY switch)
-*            month    (requirement depends on the S_DOY switch)
-*            day      (requirement depends on the S_DOY switch)
-*            hour
-*            minute
-*            second
-*            interval  DEFAULT 0
-*        Location:
-*            latitude
-*            longitude
-*        Location/time adjuster:
-*            timezone
-*        Atmospheric pressure and temperature:
-*            press     DEFAULT 1013.0 mb
-*            temp      DEFAULT 10.0 degrees C
-*        Tilt of flat surface that receives solar energy:
-*            aspect    DEFAULT 180 (South)
-*            tilt      DEFAULT 0 (Horizontal)
-*        Function Switch (codes defined in solpos.h)
-*            function  DEFAULT S_ALL
-*
-*    Returns (via the struct posdata parameter):
-*        everything defined in the struct posdata in solpos.h.
-*----------------------------------------------------------------------------*/
-
-
-
-long S_solpos(posdata * pdat)
-{
-	long int retval;
-
-	struct trigdata trigdat, *tdat;
-
-	tdat = &trigdat;   /* point to the structure */
-
-					   /* initialize the trig structure */
-	tdat->sd = -999.0; /* flag to force calculation of trig data */
-	tdat->cd = 1.0;
-	tdat->ch = 1.0; /* set the rest of these to something safe */
-	tdat->cl = 1.0;
-	tdat->sl = 1.0;
-
-	if ((retval = validate(pdat)) != 0) /* validate the inputs */
-		return retval;
-
-
-	if (pdat->function & L_DOY)
-		doy2dom(pdat);                /* convert input doy to month-day */
-	else
-		dom2doy(pdat);                /* convert input month-day to doy */
-
-	if (pdat->function & L_GEOM)
-		geometry(pdat);               /* do basic geometry calculations */
-
-	if (pdat->function & L_ZENETR)  /* etr at non-refracted zenith angle */
-		zen_no_ref(pdat, tdat);
-
-	if (pdat->function & L_SSHA)    /* Sunset hour calculation */
-		ssha(pdat, tdat);
-
-	if (pdat->function & L_SBCF)    /* Shadowband correction factor */
-		sbcf(pdat, tdat);
-
-	if (pdat->function & L_TST)     /* true solar time */
-		tst(pdat);
-
-	if (pdat->function & L_SRSS)    /* sunrise/sunset calculations */
-		srss(pdat);
-
-	if (pdat->function & L_SOLAZM)  /* solar azimuth calculations */
-		sazm(pdat, tdat);
-
-	if (pdat->function & L_REFRAC)  /* atmospheric refraction calculations */
-		refrac(pdat);
-
-	if (pdat->function & L_AMASS)   /* airmass calculations */
-		amass(pdat);
-
-	if (pdat->function & L_PRIME)   /* kt-prime/unprime calculations */
-		prime(pdat);
-
-	if (pdat->function & L_ETR)     /* ETR and ETRN (refracted) */
-		etr(pdat);
-
-	if (pdat->function & L_TILT)    /* tilt calculations */
-		tilt(pdat);
-	
-	return 0;
-}
 
 /*============================================================================
 *    Void function S_init
@@ -281,13 +183,20 @@ void S_init(struct posdata *pdat)
 	pdat->solcon = 1367.0;   /* Solar constant, 1367 W/sq m */
 	pdat->temp = 15.0;   /* Ambient dry-bulb temperature, degrees C */
 	pdat->tilt = 0.0;   /* Degrees tilt from horizontal of panel */
-	pdat->timezone = -99.0f;   /* Time zone, east (west negative). */
-	pdat->sbwid = 7.6f;   /* Eppley shadow band width */
-	pdat->sbrad = 31.7f;   /* Eppley shadow band radius */
-	pdat->sbsky = 0.04f;   /* Drummond factor for partly cloudy skies */
+	pdat->timezone = -99.0;   /* Time zone, east (west negative). */
+	pdat->sbwid = 7.6;   /* Eppley shadow band width */
+	pdat->sbrad = 31.7;   /* Eppley shadow band radius */
+	pdat->sbsky = 0.04;   /* Drummond factor for partly cloudy skies */
 	pdat->function = S_ALL;   /* compute all parameters */
-
 }
+
+
+
+
+
+
+
+
 
 /*============================================================================
 *    Local long int function validate
@@ -322,7 +231,7 @@ static long int validate(struct posdata *pdat)
 			retval |= ((1L << S_HOUR_ERROR) | (1L << S_MINUTE_ERROR));
 		if ((pdat->hour == 24) && (pdat->second > 0)) /* no more than 24 hrs */
 			retval |= ((1L << S_HOUR_ERROR) | (1L << S_SECOND_ERROR));
-		if (fabsf(pdat->timezone) > 12.0)
+		if (fabs(pdat->timezone) > 12.0)
 			retval |= (1L << S_TZONE_ERROR);
 		if ((pdat->interval < 0) || (pdat->interval > 28800))
 			retval |= (1L << S_INTRVL_ERROR);
@@ -359,6 +268,7 @@ static long int validate(struct posdata *pdat)
 
 	return retval;
 }
+
 
 /*============================================================================
 *    Local Void function dom2doy
@@ -422,6 +332,7 @@ static void doy2dom(struct posdata *pdat)
 	pdat->day = pdat->daynum - month_days[leap][imon];
 }
 
+
 /*============================================================================
 *    Local Void function geometry
 *
@@ -442,19 +353,19 @@ static void geometry(struct posdata *pdat)
 					   /* Day angle */
 					   /*  Iqbal, M.  1983.  An Introduction to Solar Radiation.
 					   Academic Press, NY., page 3 */
-	pdat->dayang = 360.0f * (pdat->daynum - 1) / 365.0f;
+	pdat->dayang = 360.0 * (pdat->daynum - 1) / 365.0;
 
 	/* Earth radius vector * solar constant = solar energy */
 	/*  Spencer, J. W.  1971.  Fourier series representation of the
 	position of the sun.  Search 2 (5), page 172 */
 	sd = sin(raddeg * pdat->dayang);
 	cd = cos(raddeg * pdat->dayang);
-	d2 = 2.0f * pdat->dayang;
+	d2 = 2.0 * pdat->dayang;
 	c2 = cos(raddeg * d2);
 	s2 = sin(raddeg * d2);
 
-	pdat->erv = 1.000110f + 0.034221f * cd + 0.001280f * sd;
-	pdat->erv += 0.000719f * c2 + 0.000077f * s2;
+	pdat->erv = 1.000110 + 0.034221 * cd + 0.001280 * sd;
+	pdat->erv += 0.000719 * c2 + 0.000077 * s2;
 
 	/* Universal Coordinated (Greenwich standard) time */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -477,36 +388,36 @@ static void geometry(struct posdata *pdat)
 	delta = pdat->year - 1949;
 	leap = (int)(delta / 4.0);
 	pdat->julday =
-		32916.5f + delta * 365.0f + leap + pdat->daynum + pdat->utime / 24.0f;
+		32916.5 + delta * 365.0 + leap + pdat->daynum + pdat->utime / 24.0;
 
 	/* Time used in the calculation of ecliptic coordinates */
 	/* Noon 1 JAN 2000 = 2,400,000 + 51,545 days Julian Date */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
 	approximate solar position (1950-2050).  Solar Energy 40 (3),
 	pp. 227-235. */
-	pdat->ectime = pdat->julday - 51545.0f;
+	pdat->ectime = pdat->julday - 51545.0;
 
 	/* Mean longitude */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
 	approximate solar position (1950-2050).  Solar Energy 40 (3),
 	pp. 227-235. */
-	pdat->mnlong = 280.460f + 0.9856474f * pdat->ectime;
+	pdat->mnlong = 280.460 + 0.9856474 * pdat->ectime;
 
 	/* (dump the multiples of 360, so the answer is between 0 and 360) */
-	pdat->mnlong -= 360.0f * (int)(pdat->mnlong / 360.0f);
+	pdat->mnlong -= 360.0 * (int)(pdat->mnlong / 360.0);
 	if (pdat->mnlong < 0.0)
-		pdat->mnlong += 360.0f;
+		pdat->mnlong += 360.0;
 
 	/* Mean anomaly */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
 	approximate solar position (1950-2050).  Solar Energy 40 (3),
 	pp. 227-235. */
-	pdat->mnanom = 357.528f + 0.9856003f * pdat->ectime;
+	pdat->mnanom = 357.528 + 0.9856003 * pdat->ectime;
 
 	/* (dump the multiples of 360, so the answer is between 0 and 360) */
-	pdat->mnanom -= 360.0f * (int)(pdat->mnanom / 360.0f);
+	pdat->mnanom -= 360.0 * (int)(pdat->mnanom / 360.0);
 	if (pdat->mnanom < 0.0)
-		pdat->mnanom += 360.0f;
+		pdat->mnanom += 360.0;
 
 	/* Ecliptic longitude */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -516,9 +427,9 @@ static void geometry(struct posdata *pdat)
 		0.020 * sin(2.0 * pdat->mnanom * raddeg);
 
 	/* (dump the multiples of 360, so the answer is between 0 and 360) */
-	pdat->eclong -= 360.0f * (int)(pdat->eclong / 360.0f);
+	pdat->eclong -= 360.0 * (int)(pdat->eclong / 360.0);
 	if (pdat->eclong < 0.0)
-		pdat->eclong += 360.0f;
+		pdat->eclong += 360.0;
 
 	/* Obliquity of the ecliptic */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -527,7 +438,7 @@ static void geometry(struct posdata *pdat)
 
 	/* 02 Feb 2001 SMW corrected sign in the following line */
 	/*  pdat->ecobli = 23.439 + 4.0e-07 * pdat->ectime;     */
-	pdat->ecobli = 23.439f - 4.0e-07 * pdat->ectime;
+	pdat->ecobli = 23.439 - 4.0e-07 * pdat->ectime;
 
 	/* Declination */
 	/*  Michalsky, J.  1988.  The Astronomical Almanac's algorithm for
@@ -583,6 +494,38 @@ static void geometry(struct posdata *pdat)
 	else if (pdat->hrang > 180.0)
 		pdat->hrang -= 360.0;
 }
+
+
+/*============================================================================
+*    Local Void function localtrig
+*
+*    Does trig on internal variable used by several functions
+*----------------------------------------------------------------------------*/
+static void localtrig(struct posdata *pdat, struct trigdata *tdat)
+{
+	/* define masks to prevent calculation of uninitialized variables */
+#define SD_MASK ( L_ZENETR | L_SSHA | S_SBCF | S_SOLAZM )
+#define SL_MASK ( L_ZENETR | L_SSHA | S_SBCF | S_SOLAZM )
+#define CL_MASK ( L_ZENETR | L_SSHA | S_SBCF | S_SOLAZM )
+#define CD_MASK ( L_ZENETR | L_SSHA | S_SBCF )
+#define CH_MASK ( L_ZENETR )
+
+	if (tdat->sd < -900.0)  /* sd was initialized -999 as flag */
+	{
+		tdat->sd = 1.0;  /* reflag as having completed calculations */
+		if (pdat->function | CD_MASK)
+			tdat->cd = cos(raddeg * pdat->declin);
+		if (pdat->function | CH_MASK)
+			tdat->ch = cos(raddeg * pdat->hrang);
+		if (pdat->function | CL_MASK)
+			tdat->cl = cos(raddeg * pdat->latitude);
+		if (pdat->function | SD_MASK)
+			tdat->sd = sin(raddeg * pdat->declin);
+		if (pdat->function | SL_MASK)
+			tdat->sl = sin(raddeg * pdat->latitude);
+	}
+}
+
 
 /*============================================================================
 *    Local Void function zen_no_ref
@@ -649,6 +592,7 @@ static void ssha(struct posdata *pdat, struct trigdata *tdat)
 		pdat->ssha = 0.0;
 }
 
+
 /*============================================================================
 *    Local Void function sbcf
 *
@@ -667,7 +611,6 @@ static void sbcf(struct posdata *pdat, struct trigdata *tdat)
 	pdat->sbcf = pdat->sbsky + 1.0 / (1.0 - p * (t1 + t2));
 
 }
-
 
 /*============================================================================
 *    Local Void function tst
@@ -698,6 +641,7 @@ static void tst(struct posdata *pdat)
 
 }
 
+
 /*============================================================================
 *    Local Void function srss
 *
@@ -718,6 +662,7 @@ static void srss(struct posdata *pdat)
 		pdat->ssetr = 720.0 + 4.0 * pdat->ssha - pdat->tstfix;
 	}
 }
+
 
 /*============================================================================
 *    Local Void function sazm
@@ -751,6 +696,8 @@ static void sazm(struct posdata *pdat, struct trigdata *tdat)
 			pdat->azim = 360.0 - pdat->azim;
 	}
 }
+
+
 
 /*============================================================================
 *    Local Int function refrac
@@ -828,6 +775,7 @@ static void amass(struct posdata *pdat)
 	}
 }
 
+
 /*============================================================================
 *    Local Void function prime
 *
@@ -837,12 +785,19 @@ static void amass(struct posdata *pdat)
 *            Perez, R., P. Ineichen, Seals, R., & Zelenka, A.  1990.  Making
 *            full use of the clearness index for parameterizing hourly
 *            insolation conditions. Solar Energy 45 (2), pp. 111-114
+
+
+The Clearness Index Kt  is defined as the ratio of the horizontal global irradiance to the corresponding irradiance available out of the atmosphere  (i.e. the  extraterrestrial irradiance multiplied by the sinus of the sun height).
+The extraterrestrial irradiance is the Solar constant  (1367 W/m²)  corrected by a yearly sinus function of amplitude 3.3% accounting for earth orbit ellipticity.
+Therefore the Clearness Index Kt may be considered as an attenuation factor of the atmosphere.
+The monthly average of Kt should usually lie between about Kt = 0.25 and Kt = 0.75 at any place.
 *----------------------------------------------------------------------------*/
 static void prime(struct posdata *pdat)
 {
 	pdat->unprime = 1.031 * exp(-1.4 / (0.9 + 9.4 / pdat->amass)) + 0.1;
 	pdat->prime = 1.0 / pdat->unprime;
 }
+
 
 /*============================================================================
 *    Local Void function etr
@@ -860,38 +815,6 @@ static void etr(struct posdata *pdat)
 		pdat->etr = 0.0;
 	}
 }
-
-
-/*============================================================================
-*    Local Void function localtrig
-*
-*    Does trig on internal variable used by several functions
-*----------------------------------------------------------------------------*/
-static void localtrig(struct posdata *pdat, struct trigdata *tdat)
-{
-	/* define masks to prevent calculation of uninitialized variables */
-#define SD_MASK ( L_ZENETR | L_SSHA | S_SBCF | S_SOLAZM )
-#define SL_MASK ( L_ZENETR | L_SSHA | S_SBCF | S_SOLAZM )
-#define CL_MASK ( L_ZENETR | L_SSHA | S_SBCF | S_SOLAZM )
-#define CD_MASK ( L_ZENETR | L_SSHA | S_SBCF )
-#define CH_MASK ( L_ZENETR )
-
-	if (tdat->sd < -900.0)  /* sd was initialized -999 as flag */
-	{
-		tdat->sd = 1.0;  /* reflag as having completed calculations */
-		if (pdat->function | CD_MASK)
-			tdat->cd = cos(raddeg * pdat->declin);
-		if (pdat->function | CH_MASK)
-			tdat->ch = cos(raddeg * pdat->hrang);
-		if (pdat->function | CL_MASK)
-			tdat->cl = cos(raddeg * pdat->latitude);
-		if (pdat->function | SD_MASK)
-			tdat->sd = sin(raddeg * pdat->declin);
-		if (pdat->function | SL_MASK)
-			tdat->sl = sin(raddeg * pdat->latitude);
-	}
-}
-
 
 /*============================================================================
 *    Local Void function tilt
@@ -926,6 +849,8 @@ static void tilt(struct posdata *pdat)
 		pdat->etrtilt = 0.0;
 
 }
+
+
 /*============================================================================
 *    Void function S_decode
 *
@@ -935,7 +860,7 @@ static void tilt(struct posdata *pdat)
 *
 *    Returns descriptive text to stderr
 *----------------------------------------------------------------------------*/
-void S_decode(long code, posdata * pdat)
+void S_decode(long code, struct posdata *pdat)
 {
 	if (code & (1L << S_YEAR_ERROR))
 		fprintf(stderr, "S_decode ==> Please fix the year: %d [1950-2050]\n",
@@ -991,7 +916,103 @@ void S_decode(long code, posdata * pdat)
 	if (code & (1L << S_SBSKY_ERROR))
 		fprintf(stderr, "S_decode ==> Please fix the shadowband sky factor: %f\n",
 			pdat->sbsky);
-
-
 }
 
+
+
+/*============================================================================
+*    Long integer function S_solpos, adapted from the VAX solar libraries
+*
+*    This function calculates the apparent solar position and the
+*    intensity of the sun (theoretical maximum solar energy) from
+*    time and place on Earth.
+*
+*    Requires (from the struct posdata parameter):
+*        Date and time:
+*            year
+*            daynum   (requirement depends on the S_DOY switch)
+*            month    (requirement depends on the S_DOY switch)
+*            day      (requirement depends on the S_DOY switch)
+*            hour
+*            minute
+*            second
+*            interval  DEFAULT 0
+*        Location:
+*            latitude
+*            longitude
+*        Location/time adjuster:
+*            timezone
+*        Atmospheric pressure and temperature:
+*            press     DEFAULT 1013.0 mb
+*            temp      DEFAULT 10.0 degrees C
+*        Tilt of flat surface that receives solar energy:
+*            aspect    DEFAULT 180 (South)
+*            tilt      DEFAULT 0 (Horizontal)
+*        Function Switch (codes defined in solpos.h)
+*            function  DEFAULT S_ALL
+*
+*    Returns (via the struct posdata parameter):
+*        everything defined in the struct posdata in solpos.h.
+*----------------------------------------------------------------------------*/
+long S_solpos(struct posdata *pdat)
+{
+	long int retval;
+
+	struct trigdata trigdat, *tdat;
+
+	tdat = &trigdat;   /* point to the structure */
+
+					   /* initialize the trig structure */
+	tdat->sd = -999.0; /* flag to force calculation of trig data */
+	tdat->cd = 1.0;
+	tdat->ch = 1.0; /* set the rest of these to something safe */
+	tdat->cl = 1.0;
+	tdat->sl = 1.0;
+
+	if ((retval = validate(pdat)) != 0) /* validate the inputs */
+		return retval;
+
+
+	if (pdat->function & L_DOY)
+		doy2dom(pdat);                /* convert input doy to month-day */
+	else
+		dom2doy(pdat);                /* convert input month-day to doy */
+
+	if (pdat->function & L_GEOM)
+		geometry(pdat);               /* do basic geometry calculations */
+
+	if (pdat->function & L_ZENETR)  /* etr at non-refracted zenith angle */
+		zen_no_ref(pdat, tdat);
+
+	if (pdat->function & L_SSHA)    /* Sunset hour calculation */
+		ssha(pdat, tdat);
+
+	if (pdat->function & L_SBCF)    /* Shadowband correction factor */
+		sbcf(pdat, tdat);
+
+	if (pdat->function & L_TST)     /* true solar time */
+		tst(pdat);
+
+	if (pdat->function & L_SRSS)    /* sunrise/sunset calculations */
+		srss(pdat);
+
+	if (pdat->function & L_SOLAZM)  /* solar azimuth calculations */
+		sazm(pdat, tdat);
+
+	if (pdat->function & L_REFRAC)  /* atmospheric refraction calculations */
+		refrac(pdat);
+
+	if (pdat->function & L_AMASS)   /* airmass calculations */
+		amass(pdat);
+
+	if (pdat->function & L_PRIME)   /* kt-prime/unprime calculations */
+		prime(pdat);
+
+	if (pdat->function & L_ETR)     /* ETR and ETRN (refracted) */
+		etr(pdat);
+
+	if (pdat->function & L_TILT)    /* tilt calculations */
+		tilt(pdat);
+
+	return 0;
+}
